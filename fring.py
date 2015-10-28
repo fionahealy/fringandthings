@@ -15,6 +15,7 @@ assume the incoming radiation is at 45 degrees to the perpendicular
 
 '''
 import numpy as np
+import scipy.constants as spc
 from pylab import *
 
 
@@ -38,12 +39,16 @@ def antenna_voltage(E, w, t, tau):
 def correlate(voltage_1,voltage_2):
 
 	# Here is what happens in the correlator:
+	# This function calculates the correlation: <v1*v2>, with a shift applied to v2
+	# The shift is varied up to a given value
+	# The shift which results in the highest integrated correlation is probably the correct one
 	
-	shift = 250
+	shift = 250	# maximum shift to try
 	integ = np.zeros((shift))
 	for i in range(0, shift):
-		product = (voltage_1)*(np.roll(voltage_2,i))
-		integ[i] = np.sum(product)/delta_t
+		product = (voltage_1)*(np.roll(voltage_2,-i))
+		integ[i] = np.sum(product)
+	integ = np.divide(integ, delta_t)	# integ is now set to the integral of v1*v2_shifted w.r.t. time
 	shifts = np.arange(0,shift)
 		
 	return(integ,shifts)
@@ -54,26 +59,28 @@ execution starts here
 
 '''
 
+# First set some constants
+
 E = 2.0 #The strength of the electric field. Intensity = E squared
 w = 0.5 #w is the angular frequency of the em wave (w = 2*pi*f)
 
 # To derive tau, decide how far apart antennas are #
 
-anten_dist = 6000000000.0 					#distance between antennas in meters
-
-path_difference = anten_dist*np.cos(45) 	#additional distance travelled by light arriving at 
-											#second antenna
-									
-tau = path_difference/(3*10^8)				#time delay between light arriving at first antenna 
-											#and light arriving at second antenna
-									
+anten_dist = 6E8 					#distance between antennas in meters
+path_difference = anten_dist*np.cos(45) 	#additional distance travelled by light arriving at second antenna
+tau = path_difference/spc.c				#time delay between light arriving at first antenna and light arriving at second antenna
+print('Tau_exact = '+str(tau))
 
 tmax = 100.0*w
 delta_t = w/10.0
 t = np.arange(0,tmax,delta_t)
 
+# Now calculate the voltages that are recorded at each antenna
+
 voltage_1 = antenna_voltage(E, w, t, 0.0)
 voltage_2 = antenna_voltage(E, w, t, tau)
+
+# Plot them. Note antenna 2 lags antenna one
 
 
 plot(t, voltage_1,t,voltage_2)
@@ -93,12 +100,16 @@ of the total intensity of the source.
 
 '''
 
-output,shifts = correlate(voltage_1,voltage_2)
-best = np.argmax(output)
-print shifts[best]
-timeshift = (shifts[best])*delta_t
-print timeshift
-print tau
+# Now attempt to correct for the geometric delay by correlating the two voltages
+# The correlate function returns the correlation and it's associated shift for a range of shifts
+# The best correlation should occur when the second voltage has been overlapped exactly with the first
+
+output,shifts = correlate(voltage_1,voltage_2)	# get the list of correlations and shifts
+best = np.argmax(output)	# find the best shift
+timeshift = (shifts[best])*delta_t	# Convert the shift to seconds by multiplying with dt
+print('Correlator derived timeshift = '+str(timeshift))
+print('Error in corrrelator shift = '+str(timeshift-tau))
+print('This error should be small relative to tau. Further corrections will be applied by fring.')
 plot(shifts,output)
 show()
 
