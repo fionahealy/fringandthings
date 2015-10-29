@@ -48,7 +48,7 @@ def correlate(voltage_1,voltage_2):
 	for i in range(0, shift):
 		product = (voltage_1)*(np.roll(voltage_2,-i))
 		integ[i] = np.sum(product)
-	integ = np.divide(integ, delta_t)	# integ is now set to the integral of v1*v2_shifted w.r.t. time
+	integ = np.multiply(integ, delta_t)	# integ is now set to the integral of v1*v2_shifted w.r.t. time
 	shifts = np.arange(0,shift)
 		
 	return(integ,shifts)
@@ -66,9 +66,9 @@ w = 0.5 #w is the angular frequency of the em wave (w = 2*pi*f)
 
 # To derive tau, decide how far apart antennas are #
 
-anten_dist = 6E8 					#distance between antennas in meters
+anten_dist = 6E8 							#distance between antennas in meters
 path_difference = anten_dist*np.cos(45) 	#additional distance travelled by light arriving at second antenna
-tau = path_difference/spc.c				#time delay between light arriving at first antenna and light arriving at second antenna
+tau = path_difference/spc.c					#time delay between light arriving at first antenna and light arriving at second antenna
 print('Tau_exact = '+str(tau))
 
 tmax = 100.0*w
@@ -101,7 +101,7 @@ of the total intensity of the source.
 '''
 
 # Now attempt to correct for the geometric delay by correlating the two voltages
-# The correlate function returns the correlation and it's associated shift for a range of shifts
+# The correlate function returns the correlation and its associated shift for a range of shifts
 # The best correlation should occur when the second voltage has been overlapped exactly with the first
 
 output,shifts = correlate(voltage_1,voltage_2)	# get the list of correlations and shifts
